@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulasi Balapan: Kecepatan, Jarak, Waktu</title>
+<style>
+:root{
+  --bg:#eef6ff; --card:#ffffff; --ink:#1c2b3a; --sub:#5b7086;
+  --blue:#2f6fed; --orange:#ff8a3d; --green:#1fb672; --line:#dbe6f3;
+  --track:#c9dcf0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1720; --card:#182432; --ink:#eef3fa; --sub:#9fb2c6;
+    --line:#2a3c50; --track:#22344a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1720; --card:#182432; --ink:#eef3fa; --sub:#9fb2c6;
+  --line:#2a3c50; --track:#22344a;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.wrap{max-width:780px; margin:0 auto; padding:24px 18px 40px;}
+h1{font-size:1.5rem; margin:4px 0 2px; text-align:center;}
+.sub{color:var(--sub); text-align:center; margin:0 0 20px; font-size:0.95rem;}
+.card{background:var(--card); border-radius:16px; padding:20px; margin-bottom:18px; box-shadow:0 2px 10px rgba(20,40,70,0.06);}
+.tabs{display:flex; gap:8px; margin-bottom:18px; overflow-x:auto;}
+.tab{flex:1; text-align:center; padding:10px 8px; border-radius:12px; background:var(--card); border:2px solid var(--line); cursor:pointer; font-weight:600; font-size:0.9rem; color:var(--sub); white-space:nowrap;}
+.tab.active{background:var(--blue); color:#fff; border-color:var(--blue);}
+.hidden{display:none;}
+.row{display:flex; gap:16px; flex-wrap:wrap;}
+.field{flex:1; min-width:200px;}
+label{display:block; font-size:0.85rem; color:var(--sub); margin-bottom:6px; font-weight:600;}
+input[type=range]{width:100%;}
+input[type=number]{width:100%; padding:10px; border-radius:10px; border:2px solid var(--line); background:var(--bg); color:var(--ink); font-size:1rem;}
+.valtag{font-weight:700; color:var(--blue);}
+.valtag.orange{color:var(--orange);}
+button{background:var(--blue); color:#fff; border:none; padding:12px 20px; border-radius:12px; font-size:1rem; font-weight:700; cursor:pointer;}
+button:active{transform:scale(0.98);}
+button.secondary{background:transparent; color:var(--blue); border:2px solid var(--blue);}
+.track{position:relative; height:56px; background:var(--track); border-radius:10px; margin:10px 0; overflow:hidden;}
+.finish{position:absolute; right:6px; top:0; bottom:0; width:4px; background:repeating-linear-gradient(45deg,#111 0 6px,#fff 6px 12px);}
+.car{position:absolute; top:8px; font-size:2rem; left:0; transition:left 0.05s linear;}
+.carB{top:24px;}
+.readout{display:flex; justify-content:space-between; font-size:0.9rem; color:var(--sub); margin-top:4px;}
+.result{margin-top:14px; padding:14px; border-radius:12px; background:var(--bg); font-size:0.95rem; line-height:1.6;}
+.result b{color:var(--blue);}
+.winner{font-weight:800; color:var(--green); font-size:1.05rem;}
+.quiz-q{font-size:1.15rem; font-weight:700; margin-bottom:14px;}
+.quiz-row{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+.feedback{margin-top:12px; font-weight:700; padding:10px; border-radius:10px;}
+.feedback.ok{background:rgba(31,182,114,0.15); color:var(--green);}
+.feedback.no{background:rgba(255,80,80,0.15); color:#e14444;}
+.score{text-align:center; color:var(--sub); margin-top:10px; font-size:0.9rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🏁 Simulasi Kecepatan, Jarak, Waktu</h1>
+  <p class="sub">Atur kecepatan mobil, lihat siapa duluan sampai, lalu uji pemahamanmu!</p>
+
+  <div class="tabs">
+    <div class="tab active" id="tabRace" onclick="switchTab('race')">🚗 Balapan</div>
+    <div class="tab" id="tabQuiz" onclick="switchTab('quiz')">🧮 Uji Hitung</div>
+  </div>
+
+  <div id="raceView">
+    <div class="card">
+      <div class="row">
+        <div class="field">
+          <label>Jarak Lintasan: <span class="valtag" id="distVal">100</span> meter</label>
+          <input type="range" id="distInput" min="50" max="300" step="10" value="100" oninput="updateLabels()">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>🔵 Kecepatan Mobil A: <span class="valtag" id="speedAVal">5</span> m/detik</label>
+          <input type="range" id="speedA" min="1" max="10" step="1" value="5" oninput="updateLabels()">
+        </div>
+        <div class="field">
+          <label>🟠 Kecepatan Mobil B: <span class="valtag orange" id="speedBVal">3</span> m/detik</label>
+          <input type="range" id="speedB" min="1" max="10" step="1" value="3" oninput="updateLabels()">
+        </div>
+      </div>
+
+      <div class="track">
+        <div class="finish"></div>
+        <div class="car" id="carA">🔵🚗</div>
+        <div class="car carB" id="carB">🟠🚙</div>
+      </div>
+      <div class="readout"><span id="timeReadout">Waktu: 0.0 detik</span><span id="statusReadout">Siap mulai</span></div>
+
+      <div class="row" style="margin-top:14px;">
+        <button onclick="startRace()" id="startBtn">▶ Mulai Balapan</button>
+        <button class="secondary" onclick="resetRace()">⟲ Ulangi</button>
+      </div>
+
+      <div class="result" id="raceResult">Tekan "Mulai Balapan" lalu perhatikan siapa lebih dulu sampai garis finish. Ingat: <b>kecepatan = jarak ÷ waktu</b>.</div>
+    </div>
+  </div>
+
+  <div id="quizView" class="hidden">
+    <div class="card">
+      <div class="quiz-q" id="quizQ">Memuat soal...</div>
+      <div class="quiz-row">
+        <input type="number" id="quizAns" placeholder="Jawabanmu" style="max-width:160px;">
+        <span id="quizUnit" style="color:var(--sub); font-weight:600;"></span>
+        <button onclick="checkQuiz()">Cek Jawaban</button>
+        <button class="secondary" onclick="newQuiz()">Soal Baru</button>
+      </div>
+      <div class="feedback hidden" id="quizFeedback"></div>
+      <div class="score">Benar: <span id="scoreOk">0</span> &nbsp;|&nbsp; Salah: <span id="scoreNo">0</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(t){
+  document.getElementById('raceView').classList.toggle('hidden', t!=='race');
+  document.getElementById('quizView').classList.toggle('hidden', t!=='quiz');
+  document.getElementById('tabRace').classList.toggle('active', t==='race');
+  document.getElementById('tabQuiz').classList.toggle('active', t==='quiz');
+}
+
+function updateLabels(){
+  document.getElementById('distVal').textContent = document.getElementById('distInput').value;
+  document.getElementById('speedAVal').textContent = document.getElementById('speedA').value;
+  document.getElementById('speedBVal').textContent = document.getElementById('speedB').value;
+}
+updateLabels();
+
+let raceTimer = null;
+function startRace(){
+  resetRace(true);
+  const dist = parseFloat(document.getElementById('distInput').value);
+  const vA = parseFloat(document.getElementById('speedA').value);
+  const vB = parseFloat(document.getElementById('speedB').value);
+  const tA = dist / vA, tB = dist / vB;
+  const track = document.querySelector('.track');
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('statusReadout').textContent = 'Berlangsung...';
+  let elapsed = 0;
+  const step = 0.1; // simulated seconds per tick
+  const tickMs = 60; // real ms per tick (sped up for viewing)
+  let doneA = false, doneB = false;
+  raceTimer = setInterval(()=>{
+    elapsed += step;
+    const trackW = track.clientWidth - 40;
+    const posA = Math.min(1, elapsed / tA);
+    const posB = Math.min(1, elapsed / tB);
+    document.getElementById('carA').style.left = (posA*trackW)+'px';
+    document.getElementById('carB').style.left = (posB*trackW)+'px';
+    document.getElementById('timeReadout').textContent = 'Waktu: '+elapsed.toFixed(1)+' detik';
+    if(posA>=1 && !doneA){ doneA = true; }
+    if(posB>=1 && !doneB){ doneB = true; }
+    if(doneA && doneB){
+      clearInterval(raceTimer);
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('statusReadout').textContent = 'Selesai!';
+      const winner = tA < tB ? 'Mobil A 🔵' : (tB < tA ? 'Mobil B 🟠' : 'Seri! Keduanya sampai bersamaan');
+      document.getElementById('raceResult').innerHTML =
+        '<span class="winner">🏆 '+winner+' lebih dulu sampai!</span><br><br>'+
+        'Mobil A: jarak '+dist+' m, kecepatan '+vA+' m/detik → waktu = '+dist+' ÷ '+vA+' = <b>'+tA.toFixed(1)+' detik</b><br>'+
+        'Mobil B: jarak '+dist+' m, kecepatan '+vB+' m/detik → waktu = '+dist+' ÷ '+vB+' = <b>'+tB.toFixed(1)+' detik</b><br><br>'+
+        'Semakin besar kecepatan, semakin sedikit waktu untuk menempuh jarak yang sama.';
+    }
+  }, tickMs);
+}
+function resetRace(keepBtn){
+  if(raceTimer) clearInterval(raceTimer);
+  document.getElementById('carA').style.left='0px';
+  document.getElementById('carB').style.left='0px';
+  document.getElementById('timeReadout').textContent='Waktu: 0.0 detik';
+  document.getElementById('statusReadout').textContent='Siap mulai';
+  if(!keepBtn){
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('raceResult').textContent = 'Tekan "Mulai Balapan" lalu perhatikan siapa lebih dulu sampai garis finish. Ingat: kecepatan = jarak ÷ waktu.';
+  }
+}
+
+// ---- Quiz mode ----
+let scoreOk=0, scoreNo=0, currentQ=null;
+function rnd(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function newQuiz(){
+  const type = rnd(1,3);
+  const v = rnd(2,10), t = rnd(2,10), s = v*t;
+  document.getElementById('quizFeedback').classList.add('hidden');
+  document.getElementById('quizAns').value='';
+  if(type===1){
+    currentQ = {answer:v, unit:'m/detik'};
+    document.getElementById('quizQ').textContent = 'Sebuah sepeda menempuh jarak '+s+' meter dalam waktu '+t+' detik. Berapa kecepatannya?';
+  } else if(type===2){
+    currentQ = {answer:s, unit:'meter'};
+    document.getElementById('quizQ').textContent = 'Sebuah mobil melaju dengan kecepatan '+v+' m/detik selama '+t+' detik. Berapa jarak yang ditempuh?';
+  } else {
+    currentQ = {answer:t, unit:'detik'};
+    document.getElementById('quizQ').textContent = 'Seseorang berlari sejauh '+s+' meter dengan kecepatan '+v+' m/detik. Berapa lama waktu yang dibutuhkan?';
+  }
+  document.getElementById('quizUnit').textContent = currentQ.unit;
+}
+function checkQuiz(){
+  const ans = parseFloat(document.getElementById('quizAns').value);
+  const fb = document.getElementById('quizFeedback');
+  fb.classList.remove('hidden');
+  if(ans === currentQ.answer){
+    scoreOk++; fb.className='feedback ok'; fb.textContent = '✅ Benar! Jawabannya '+currentQ.answer+' '+currentQ.unit+'.';
+  } else {
+    scoreNo++; fb.className='feedback no'; fb.textContent = '❌ Belum tepat. Jawaban yang benar: '+currentQ.answer+' '+currentQ.unit+'.';
+  }
+  document.getElementById('scoreOk').textContent = scoreOk;
+  document.getElementById('scoreNo').textContent = scoreNo;
+}
+newQuiz();
+</script>
+</body>
+</html>
